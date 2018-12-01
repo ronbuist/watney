@@ -1,4 +1,5 @@
 from flask import Flask, send_file, request, send_from_directory, jsonify
+from flask_cors import CORS
 import json
 from rover import Driver
 import signal
@@ -7,6 +8,7 @@ from rover import MotorController
 from subprocess import call
 
 app = Flask(__name__)
+CORS(app)
 roverDriver = None
 
 
