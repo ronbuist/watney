@@ -22,22 +22,28 @@
     var wifiSSID = '';
     var wifiQuality = '';
     var wifiSignal = '';
+    var hostname = '';
 
 	// Function for sending the heartbeat to the Watney rover.
-	function doHeartbeat(hostname) {
-            $.ajax({
-                url:'http://' + hostname + ':5000/heartbeat',
-                type:"POST",
-                dataType:"json"
-            }).done(function(data) {
-            	wifiSSID = data.SSID;
-            	wifiQuality = data.Quality;
-            	wifiSignal = data.Signal;
-            });
-    }
+	function doHeartbeat() {
+	
+		// JSON call to do the heartbeat.
+        $.ajax({
+            url:'http://' + hostname + ':5000/heartbeat',
+            type:"POST",
+            dataType:"json"
+        }).done(function(data) {
+            wifiSSID = data.SSID;
+            wifiQuality = data.Quality;
+            wifiSignal = data.Signal;
+        });
+    };
 
     // when the connect to Watney block is executed.
-    ext.cnct = function (hostname, callback) {
+    ext.cnct = function (watneyHostname, callback) {
+
+		// store the hostname; we'll need it for the other code blocks.
+		hostname = watneyHostname;
 
 		// Check if there is already a heartbeat running. This should not be
 		// the case, but we'll stop it if there is one running.
@@ -46,7 +52,7 @@
 		}
 
 		// Start the heartbeat to Watney
-		heartbeatInterval = setInterval(function () { doHeartbeat(hostname) },1000);
+		heartbeatInterval = setInterval(function () { doHeartbeat() },1000);
 		
         // change status light from yellow to green.
         myMsg = 'ready';
@@ -110,7 +116,7 @@
     // Block and block menu descriptions
     var lang = navigator.language || navigator.userLanguage;
     lang = lang.toUpperCase();
-    if (lang.includes('XX')) {
+    if (lang.includes('NL')) {
 
         var descriptor = {
             blocks: [
