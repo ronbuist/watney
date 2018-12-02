@@ -16,6 +16,9 @@ roverDriver = None
 def getPageHTML():
     return send_file("index.html")
 
+@app.route("/camwindow.html")
+def getPageCamwindow():
+    return send_file("camwindow.html")
 
 @app.route('/js/<path:path>')
 def send_js(path):
