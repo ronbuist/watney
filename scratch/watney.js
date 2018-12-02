@@ -24,6 +24,8 @@
     var wifiQuality = '';
     var wifiSignal = '';
     var hostname = '';
+    var currentBearing = '';
+    var currentLook = 0;
 
 	// Function for sending the heartbeat to the Watney rover.
 	function doHeartbeat() {
@@ -40,8 +42,36 @@
         });
     };
     
+    // Function for sending motor and servo commands to Watney
+    function sendCommand(bearing,look) {
+    
+    	if (currentBearing != bearing || currentLook != look) {
+            currentBearing = bearing;
+            currentLook = look;
+            // Replace Dutch bearings (o = oost = east, z = zuid = south)
+            bearing = bearing.replace("o","e");
+            bearing = bearing.replace("z","s");
+            var commandObj = {
+                'bearing': bearing,
+                'look': look
+            };
+            
+            $.ajax({
+                	url:'http://' + hostname + ':5000/sendCommand',
+                    type:"POST",
+                    data:JSON.stringify(commandObj),
+                    contentType:"application/json; charset=utf-8",
+                    dataType:"json"
+            });
+        }
+
+    };
+    
     // Cleanup function
     function doCleanup() {
+    
+    	// Stop driving (if we are currently driving)
+    	sendCommand('0',0);
 
 		// Stop heartbeat interval (if it's running)
 		if (heartbeatInterval !== null) {
@@ -99,12 +129,16 @@
     };
     
     // When the open camera block is executed
-	ext.camopen = function () {
+	ext.camopen = function (callback) {
 			
 		// Open the camera window, but only if we haven't done so already.
 		if (camWindow == null) {
 			camWindow = window.open('http://' + hostname + ':5000/camwindow.html');
 		}
+		
+		// Wait a couple of seconds; opening the camera feed sometimes makes Watney
+		// unresponsive for a while.
+		setTimeout(function () { callback(); }, 10000);
 
 	};
 	
@@ -128,6 +162,16 @@
         // Clean up
         doCleanup();
 
+    };
+    
+    // When the drive block is executed
+    ext.drive = function (bearing) {
+    	sendCommand(bearing,currentLook);
+    };
+    
+    // When the stop driving block is executed
+    ext.drivestop = function () {
+    	sendCommand('0',currentLook);
     };
     
     // When the wifi SSID reporter block is executed
@@ -154,6 +198,13 @@
     	return wifiSignal;
     };
 
+    // When the bearing reporter block is executed
+    ext.getBearing = function() {
+    
+    	// Return current bearing...
+    	return currentBearing;
+    };
+
     // Block and block menu descriptions
     var lang = navigator.language || navigator.userLanguage;
     lang = lang.toUpperCase();
@@ -163,20 +214,21 @@
             blocks: [
                 // Block type, block name, function name
                 ["w", 'Verbind met Watney rover op %s', 'cnct', "Host"],
-                [" ", 'Open camera window', 'camopen'],
+                ["w", 'Open camera window', 'camopen'],
                 [" ", 'Sluit camera window', 'camclose'],
                 [" ", 'Verbreek verbinding met Watney rover', 'discnct'],
-                [" ", 'Rij in richting %m.direction', 'drive', "0"],
+                [" ", 'Rij in richting %m.direction', 'drive', ""],
+                [" ", 'Stop met rijden','drivestop'],
+                ["r", 'Rijrichting','getBearing'],
                 ["r", 'WiFi SSID','getWifiSSID'],
                 ["r", 'WiFi Kwaliteit','getWifiQuality'],
                 ["r", 'WiFi Signaal','getWifiSignal']
             ],
             "menus": {
-                "direction": ["0", "n", "nw", "no", "z", "zo", "zw", "o", "w"],
-                "showstate": ["Aan", "Uit"]
+                "direction": ["n", "nw", "no", "z", "zo", "zw", "o", "w"]
 
             },
-            url: 'https://github.com/ronbuist/watneyscratch'
+            url: 'https://github.com/ronbuist/watney'
         };
 
     }
@@ -189,17 +241,18 @@
                 [" ", 'Open camera window', 'camopen'],
                 [" ", 'Close camera window', 'camclose'],
                 [" ", 'Disconnect from Watney rover', 'discnct'],
-                [" ", 'Drive in direction %m.direction', 'drive', "0"],
+                [" ", 'Drive in direction %m.direction', 'drive', ""],
+                [" ", 'Stop driving','drivestop'],
+                ["r", 'Bearing','getBearing'],
                 ["r", 'WiFi SSID','getWifiSSID'],
                 ["r", 'WiFi Quality','getWifiQuality'],
                 ["r", 'WiFi Signal','getWifiSignal']
             ],
             "menus": {
-                "direction": ["0", "n", "nw", "ne", "s", "se", "sw", "e", "w"],
-                "showstate": ["On", "Off"]
+                "direction": ["n", "nw", "ne", "s", "se", "sw", "e", "w"]
 
             },
-            url: 'https://github.com/ronbuist/watneyscratch'
+            url: 'https://github.com/ronbuist/watney'
         };
     };
 
